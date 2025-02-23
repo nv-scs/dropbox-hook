@@ -4,7 +4,11 @@ const app = express();
 
 // console.log(script);
 
-app.get("/", (req, res) => res.send(``));
+app.get("/", (req, res) => {
+  console.log(req.query);
+
+  return res.send(req.query.challenge ? req.query.challenge : "");
+});
 
 app.post("/webhook", (req, res) => {
   let body = "";
