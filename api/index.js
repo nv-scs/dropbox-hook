@@ -1,4 +1,3 @@
-const http = require("http");
 const fs = require("fs");
 const express = require("express");
 const app = express();
@@ -7,8 +6,22 @@ const app = express();
 
 app.get("/", (req, res) => res.send(``));
 
-app.post("/save", (req, res) => {
-  res.json(res.data);
+app.post("/webhook", (req, res) => {
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+  req.on("end", async () => {
+    const data = JSON.parse(body);
+    const dropboxPath = data.path; // Path of the uploaded file in Dropbox
+
+    // Asynchronously download the file to the local directory
+    const localPath = `${downloadDir}/${data.name}`;
+    await downloadFile(dropboxPath, localPath);
+
+    res.writeHead(200);
+    res.end("File download initiated.");
+  });
 });
 
 const ACCESS_TOKEN =
@@ -16,32 +29,9 @@ const ACCESS_TOKEN =
 const downloadDir = "path/to/download/directory"; // Local directory to save downloaded files
 
 // Create a simple HTTP server to receive webhook notifications from Dropbox
-http
-  .createServer(async (req, res) => {
-    if (req.method === "POST" && req.url === "/webhook") {
-      let body = "";
-      req.on("data", (chunk) => {
-        body += chunk;
-      });
-      req.on("end", async () => {
-        const data = JSON.parse(body);
-        const dropboxPath = data.path; // Path of the uploaded file in Dropbox
-
-        // Asynchronously download the file to the local directory
-        const localPath = `${downloadDir}/${data.name}`;
-        await downloadFile(dropboxPath, localPath);
-
-        res.writeHead(200);
-        res.end("File download initiated.");
-      });
-    } else {
-      res.writeHead(404);
-      res.end("Not found");
-    }
-  })
-  .listen(3000, () => {
-    console.log("Server running at http://localhost:3000");
-  });
+app.listen(3000, () => {
+  console.log("Server running at http://localhost:3000");
+});
 
 const downloadFile = async (dropboxPath, localPath) => {
   const response = await fetch(
